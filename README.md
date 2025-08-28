@@ -12,14 +12,16 @@
 - 农历出生时间显示为真太阳时校正后的时间
 
 ## 安装依赖
-
-```bash
-pip install sxtwl mcp
-```
-or
 ```bash
 pip install -r requirements.txt
 ```
+
+### 直接运行
+```bash
+python mcp_server.py
+```
+
+默认情况下，服务将在 `http://localhost:8001/mcp` 上运行。
 
 ## 启动MCP服务
 
@@ -32,20 +34,6 @@ docker-compose up --build
 
 如果从宿主机访问Docker容器中的服务，使用以下地址：
 - Windows/Linux/macOS: `http://host.docker.internal:8001/mcp`
-
-### 直接运行
-```bash
-python mcp_server.py
-```
-
-默认情况下，服务将在 `http://localhost:8001/mcp` 上运行。
-
-### 连接问题排查
-如果遇到503 Service Unavailable错误，请注意：
-1. MCP服务需要使用Model Context Protocol客户端连接，不能直接通过浏览器或普通HTTP请求访问
-2. 确保客户端支持MCP协议并正确配置连接参数
-3. 服务正常启动后会显示"Uvicorn running on http://0.0.0.0:8001"
-4. 如果在Docker容器中运行，请使用`host.docker.internal`而不是`localhost`从宿主机访问
 
 ### MCP客户端调用
 
