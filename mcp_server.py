@@ -1,5 +1,6 @@
 # mcp_server.py
 
+import os
 from mcp.server.fastmcp import FastMCP
 from bazi_tool import BaZiCalculator
 
@@ -7,7 +8,7 @@ from bazi_tool import BaZiCalculator
 mcp = FastMCP(name="BaZi Tool")
 
 # Configure server settings
-mcp.settings.port = 8001
+mcp.settings.port = int(os.environ.get("PORT", "8001"))
 mcp.settings.host = "0.0.0.0"
 
 @mcp.tool()
