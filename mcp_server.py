@@ -95,4 +95,5 @@ def bazi(
 if __name__ == "__main__":
     # Per mcp.json, the server should run on port 8001.
     # The default mount path for streamable-http is /mcp, which matches the config.
-    mcp.run(transport="streamable-http")
+    # Allow external hosts (for Render + wrapper access)
+    mcp.run(transport="streamable-http", allowed_hosts=["*"])
