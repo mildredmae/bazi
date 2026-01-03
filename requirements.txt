@@ -1,2 +1,3 @@
 sxtwl
-mcp
+fastapi
+uvicorn
