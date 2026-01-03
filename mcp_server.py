@@ -1,13 +1,10 @@
 # mcp_server.py
-
 import os
 from mcp.server.fastmcp import FastMCP
 from bazi_tool import BaZiCalculator
 
-# Create an MCP server
+# --- MCP SERVER (for internal AI connections) ---
 mcp = FastMCP(name="BaZi Tool")
-
-# Configure server settings
 mcp.settings.port = int(os.environ.get("PORT", "8001"))
 mcp.settings.host = "0.0.0.0"
 
@@ -26,21 +23,6 @@ def bazi(
 ) -> dict:
     """
     Calculate BaZi (八字) information.
-
-    Args:
-        name: The name of the person.
-        gender: The gender of the person ('男' for male, '女' for female).
-        calendar: The calendar type for the birth date ('公历' for Gregorian, '农历' for Lunar).
-        year: The year of birth.
-        month: The month of birth.
-        day: The day of birth.
-        hour: The hour of birth (0-23).
-        minute: The minute of birth (0-59).
-        birth_city: The city of birth.
-        current_city: The current city of residence (optional).
-    
-    Returns:
-        A dictionary containing the BaZi information.
     """
     calculator = BaZiCalculator(
         name=name,
@@ -54,9 +36,9 @@ def bazi(
         birth_city=birth_city,
         current_city=current_city,
     )
-    
+
     gender_text = "男 (乾造)" if calculator.gender == "男" else "女 (坤造)"
-    
+
     if calculator.calendar == "公历":
         solar_date_str = f"{calculator.solar_time.year}年{calculator.solar_time.month}月{calculator.solar_time.day}日{calculator.solar_time.hour:02d}:{calculator.solar_time.minute:02d}"
         lunar_year = calculator.lunar_date.getLunarYear()
@@ -64,21 +46,15 @@ def bazi(
         lunar_day = calculator.lunar_date.getLunarDay()
         is_leap = "(闰月)" if calculator.lunar_date.isLunarLeap() else ""
         lunar_date_str = f"{lunar_year}年{lunar_month}月{lunar_day}日{calculator.solar_time.hour:02d}:{calculator.solar_time.minute:02d} {is_leap}"
-        birth_time_info = {
-            "公历": solar_date_str,
-            "农历": lunar_date_str
-        }
-    else:  # 农历
+        birth_time_info = {"公历": solar_date_str, "农历": lunar_date_str}
+    else:
         lunar_year = calculator.lunar_date.getLunarYear()
         lunar_month = calculator.lunar_date.getLunarMonth()
         lunar_day = calculator.lunar_date.getLunarDay()
         is_leap = "(闰月)" if calculator.lunar_date.isLunarLeap() else ""
         lunar_date_str = f"{lunar_year}年{lunar_month}月{lunar_day}日{calculator.solar_time.hour:02d}:{calculator.solar_time.minute:02d} {is_leap}"
         solar_date_str = f"{calculator.solar_time.year}年{calculator.solar_time.month}月{calculator.solar_time.day}日{calculator.solar_time.hour:02d}:{calculator.solar_time.minute:02d}"
-        birth_time_info = {
-            "农历": lunar_date_str,
-            "公历": solar_date_str
-        }
+        birth_time_info = {"农历": lunar_date_str, "公历": solar_date_str}
 
     result = {
         "姓名": calculator.name,
@@ -92,9 +68,57 @@ def bazi(
     }
     return result
 
-if __name__ == "__main__":
-    # Per mcp.json, the server should run on port 8001.
-    # The default mount path for streamable-http is /mcp, which matches the config.
-    # Allow external hosts (for Render + wrapper access)
-    mcp.run(transport="streamable-http")
 
+# --- FASTAPI REST ENDPOINT (for HTTP clients & GPT Actions) ---
+from fastapi import FastAPI, Query
+import uvicorn
+
+app = FastAPI(title="BaZi REST API")
+
+@app.get("/api/bazi")
+def get_bazi(
+    name: str = Query(...),
+    gender: str = Query(..., regex="^(male|female|男|女)$"),
+    year: int = Query(...),
+    month: int = Query(...),
+    day: int = Query(...),
+    hour: int = Query(...),
+    minute: int = Query(0),
+    birth_city: str = Query(...),
+):
+    # Convert English gender to Chinese
+    g = "男" if gender.lower() in ["male", "男"] else "女"
+    calc = BaZiCalculator(
+        name=name,
+        gender=g,
+        calendar="公历",
+        year=year,
+        month=month,
+        day=day,
+        hour=hour,
+        minute=minute,
+        birth_city=birth_city,
+        current_city=birth_city,
+    )
+    return {
+        "name": name,
+        "gender": gender,
+        "bazi": calc.ba_zi,
+        "jie_qi": calc.jie_qi_info,
+        "da_yun": calc.da_yun_info,
+    }
+
+
+if __name__ == "__main__":
+    # Run both MCP and FastAPI servers
+    import threading
+
+    # Start MCP server in a background thread (for internal AI tools)
+    def run_mcp():
+        mcp.run(transport="streamable-http")
+
+    threading.Thread(target=run_mcp, daemon=True).start()
+
+    # Start REST API (for HTTP clients)
+    port = int(os.environ.get("PORT", "10000"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
