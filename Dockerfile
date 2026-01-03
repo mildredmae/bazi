@@ -1,20 +1,18 @@
-# 使用Python 3.11作为基础镜像
+# Use Python 3.11 as the base image
 FROM python:3.11-slim
 
-# 设置工作目录
+# Set working directory
 WORKDIR /app
 
-# 复制requirements.txt文件
+# Copy dependency file and install requirements
 COPY requirements.txt .
-
-# 安装Python依赖
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制项目文件
+# Copy all project files
 COPY . .
 
-# 暴露端口8001
+# Expose port for FastAPI
 EXPOSE 8001
 
-# 启动命令
-CMD ["python", "mcp_server.py"]
+# Start the FastAPI app
+CMD ["uvicorn", "mcp_server:app", "--host", "0.0.0.0", "--port", "8001"]
